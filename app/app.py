@@ -6,6 +6,7 @@ import hashlib
 import html
 import json
 import sys
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from unischedule.calendar import build_ics_calendar  # noqa: E402
 from unischedule.configuration import (  # noqa: E402
     configuration_from_editor,
     editor_rows,
@@ -445,6 +447,47 @@ with schedule_tab:
             mime="text/csv",
             icon=":material/download:",
         )
+        with st.expander("Calendar export"):
+            calendar_columns = st.columns(2)
+            current_monday = date.today() - timedelta(days=date.today().weekday())
+            first_week = calendar_columns[0].date_input(
+                "First teaching week",
+                value=current_monday,
+                help="Any date is accepted and normalized to that week's Monday.",
+            )
+            teaching_weeks = calendar_columns[1].number_input(
+                "Teaching weeks",
+                min_value=1,
+                max_value=52,
+                value=12,
+                step=1,
+            )
+            first_monday = first_week - timedelta(days=first_week.weekday())
+            st.caption(
+                f"Weekly events will begin on {first_monday:%d %B %Y} and repeat "
+                f"for {int(teaching_weeks)} weeks."
+            )
+            meeting_ids = {
+                (row["section_id"], int(row["occurrence"]))
+                for row in filtered.to_dict("records")
+            }
+            calendar_data = build_ics_calendar(
+                university,
+                result,
+                first_week=first_week,
+                weeks=int(teaching_weeks),
+                meeting_ids=meeting_ids,
+                calendar_name=(
+                    f"{university.name} | {view}: {lookup[selected_id]}"
+                ),
+            )
+            st.download_button(
+                "Download calendar",
+                data=calendar_data,
+                file_name=f"{view.lower()}_{selected_id}_calendar.ics",
+                mime="text/calendar",
+                icon=":material/calendar_add_on:",
+            )
 
 with schools_tab:
     selected_school_id = st.selectbox(
