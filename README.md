@@ -9,6 +9,28 @@ of a university. A school is the primary department-level unit, such as the
 School of Computer Science or School of Artificial Intelligence. Subject areas
 organize courses within each school.
 
+## Live Demo
+
+[Open the University Schedule Optimizer](https://campus-schedule-optimizer.streamlit.app/)
+
+The hosted demonstration loads a fictional university automatically, so the
+scheduler, operational workflows, editors, and exports can be explored without
+uploading data.
+
+## Application Preview
+
+### Conflict-Free Timetable
+
+![Generated weekly timetable with university resource totals and independent validation](docs/images/timetable-overview.png)
+
+### Emergency Substitute Coverage
+
+![A completed substitute coverage plan for an instructor on emergency leave](docs/images/staff-coverage-workflow.png)
+
+### University Administration
+
+![Editable staff records with school affiliations and qualified subject areas](docs/images/administration-workspace.png)
+
 ## What It Solves
 
 The scheduler assigns every course meeting to a time and room while enforcing
@@ -125,20 +147,21 @@ campus-schedule-optimizer/
 
 ## Run Locally
 
-The project uses Python 3.12 and its own virtual environment.
+Clone the repository and create an isolated Python 3.12 environment:
 
 ```bash
-cd "/Users/paco/Documents/Git Projects/campus-schedule-optimizer"
-source .venv/bin/activate
-streamlit run app/app.py
-```
-
-To recreate the environment:
-
-```bash
+git clone https://github.com/gokul-debugger/campus-schedule-optimizer.git
+cd campus-schedule-optimizer
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+streamlit run app/app.py
+```
+
+For development, install the project with its test and lint dependencies:
+
+```bash
 python -m pip install -e ".[dev]"
 ```
 
