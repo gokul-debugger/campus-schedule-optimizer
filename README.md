@@ -75,6 +75,7 @@ The Streamlit interface includes:
 - qualified substitute suggestions with collision and absence checks
 - saved cover indicators on the weekly timetable
 - downloadable substitute coverage plans
+- recurring `.ics` calendar export by cohort, instructor, room, or school
 - university-wide schedule generation
 - weekly timetable views by cohort, instructor, room, and school
 - complete course, instructor, room, and building details
@@ -108,6 +109,7 @@ campus-schedule-optimizer/
 ├── scripts/generate_schedule.py
 ├── src/unischedule/
 │   ├── graph.py
+│   ├── calendar.py
 │   ├── configuration.py
 │   ├── io.py
 │   ├── models.py
@@ -179,6 +181,11 @@ Temporary leave and substitute assignments are operational session data. They do
 not alter the uploaded or built-in university configuration. A completed cover plan
 can be exported as CSV for coordinators and teaching staff.
 
+Each filtered timetable can also be exported as an RFC 5545 `.ics` calendar. The
+app normalizes the selected first teaching week to Monday and creates weekly
+recurring events for the chosen semester length. The file can be imported into
+Apple Calendar, Google Calendar, Outlook, and other compatible calendar clients.
+
 The complete example in `examples/demo_university.json` is both a demonstration
 dataset and an input template. Empty staff availability means the staff member is
 available in every configured period.
@@ -195,8 +202,8 @@ The test suite covers graph construction, editable-table conversion, configurati
 validation, cross-school staff rules, cohort references, room suitability, complete
 schedule generation, recurring-meeting distribution, independent verification,
 permanent availability updates, substitute eligibility, cover-plan validation, and
-impossible schedules. GitHub Actions runs linting and tests for every push and pull
-request.
+calendar generation, and impossible schedules. GitHub Actions runs linting and
+tests for every push and pull request.
 
 ## Current Scope
 
