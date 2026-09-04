@@ -1,0 +1,80 @@
+{
+  "university": "Northstar University",
+  "schools": [
+    {"id": "SCS", "name": "School of Computer Science", "code": "SCS"},
+    {"id": "SAI", "name": "School of Artificial Intelligence", "code": "SAI"}
+  ],
+  "cohorts": [
+    {"id": "CS-Y1-A", "name": "Computer Science Year 1 A", "school_id": "SCS", "program": "BSc Computer Science", "size": 46},
+    {"id": "CS-Y2-A", "name": "Computer Science Year 2 A", "school_id": "SCS", "program": "BSc Computer Science", "size": 42},
+    {"id": "CS-Y3-A", "name": "Computer Science Year 3 A", "school_id": "SCS", "program": "BSc Computer Science", "size": 38},
+    {"id": "AI-Y1-A", "name": "Artificial Intelligence Year 1 A", "school_id": "SAI", "program": "BSc Artificial Intelligence", "size": 40},
+    {"id": "AI-Y2-A", "name": "Artificial Intelligence Year 2 A", "school_id": "SAI", "program": "BSc Artificial Intelligence", "size": 38},
+    {"id": "AI-Y3-A", "name": "Artificial Intelligence Year 3 A", "school_id": "SAI", "program": "BSc Artificial Intelligence", "size": 34}
+  ],
+  "time_slots": [
+    {"id": "MON-1", "day": "Monday", "period": 1, "start": "09:00", "end": "10:00"},
+    {"id": "MON-2", "day": "Monday", "period": 2, "start": "10:00", "end": "11:00"},
+    {"id": "MON-3", "day": "Monday", "period": 3, "start": "11:15", "end": "12:15"},
+    {"id": "MON-4", "day": "Monday", "period": 4, "start": "13:15", "end": "14:15"},
+    {"id": "MON-5", "day": "Monday", "period": 5, "start": "14:15", "end": "15:15"},
+    {"id": "TUE-1", "day": "Tuesday", "period": 1, "start": "09:00", "end": "10:00"},
+    {"id": "TUE-2", "day": "Tuesday", "period": 2, "start": "10:00", "end": "11:00"},
+    {"id": "TUE-3", "day": "Tuesday", "period": 3, "start": "11:15", "end": "12:15"},
+    {"id": "TUE-4", "day": "Tuesday", "period": 4, "start": "13:15", "end": "14:15"},
+    {"id": "TUE-5", "day": "Tuesday", "period": 5, "start": "14:15", "end": "15:15"},
+    {"id": "WED-1", "day": "Wednesday", "period": 1, "start": "09:00", "end": "10:00"},
+    {"id": "WED-2", "day": "Wednesday", "period": 2, "start": "10:00", "end": "11:00"},
+    {"id": "WED-3", "day": "Wednesday", "period": 3, "start": "11:15", "end": "12:15"},
+    {"id": "WED-4", "day": "Wednesday", "period": 4, "start": "13:15", "end": "14:15"},
+    {"id": "WED-5", "day": "Wednesday", "period": 5, "start": "14:15", "end": "15:15"},
+    {"id": "THU-1", "day": "Thursday", "period": 1, "start": "09:00", "end": "10:00"},
+    {"id": "THU-2", "day": "Thursday", "period": 2, "start": "10:00", "end": "11:00"},
+    {"id": "THU-3", "day": "Thursday", "period": 3, "start": "11:15", "end": "12:15"},
+    {"id": "THU-4", "day": "Thursday", "period": 4, "start": "13:15", "end": "14:15"},
+    {"id": "THU-5", "day": "Thursday", "period": 5, "start": "14:15", "end": "15:15"},
+    {"id": "FRI-1", "day": "Friday", "period": 1, "start": "09:00", "end": "10:00"},
+    {"id": "FRI-2", "day": "Friday", "period": 2, "start": "10:00", "end": "11:00"},
+    {"id": "FRI-3", "day": "Friday", "period": 3, "start": "11:15", "end": "12:15"},
+    {"id": "FRI-4", "day": "Friday", "period": 4, "start": "13:15", "end": "14:15"},
+    {"id": "FRI-5", "day": "Friday", "period": 5, "start": "14:15", "end": "15:15"}
+  ],
+  "staff": [
+    {"id": "CS-P01", "name": "Dr. Maya Rao", "role": "Professor", "school_ids": ["SCS"], "qualified_subject_areas": ["Computing Theory", "Data Engineering"]},
+    {"id": "CS-P02", "name": "Prof. Daniel Lee", "role": "Professor", "school_ids": ["SCS", "SAI"], "qualified_subject_areas": ["Software Foundations", "Computing Theory", "Mathematical Foundations", "Interdisciplinary Computing"]},
+    {"id": "CS-L01", "name": "Anika Menon", "role": "Lecturer", "school_ids": ["SCS"], "qualified_subject_areas": ["Software Foundations", "Data Engineering"]},
+    {"id": "CS-L02", "name": "Ibrahim Khan", "role": "Lecturer", "school_ids": ["SCS"], "qualified_subject_areas": ["Systems"]},
+    {"id": "CS-M01", "name": "Nora Joseph", "role": "Lab Mentor", "school_ids": ["SCS"], "qualified_subject_areas": ["Software Foundations", "Systems"]},
+    {"id": "AI-P01", "name": "Dr. Sofia Chen", "role": "Professor", "school_ids": ["SAI"], "qualified_subject_areas": ["Artificial Intelligence", "Machine Learning", "AI Governance"]},
+    {"id": "AI-P02", "name": "Dr. Vikram Patel", "role": "Professor", "school_ids": ["SAI"], "qualified_subject_areas": ["Machine Learning", "Mathematical Foundations"]},
+    {"id": "AI-L01", "name": "Elena Costa", "role": "Lecturer", "school_ids": ["SAI"], "qualified_subject_areas": ["AI Engineering", "Machine Learning"]},
+    {"id": "AI-L02", "name": "Noah Williams", "role": "Lecturer", "school_ids": ["SAI"], "qualified_subject_areas": ["Artificial Intelligence", "AI Governance"]},
+    {"id": "AI-M01", "name": "Priya Das", "role": "Lab Mentor", "school_ids": ["SAI"], "qualified_subject_areas": ["AI Engineering", "Machine Learning"]}
+  ],
+  "rooms": [
+    {"id": "CS-101", "name": "Computing Lab 101", "building": "Turing Hall", "capacity": 50, "school_id": "SCS", "features": ["computers", "projector"]},
+    {"id": "CS-204", "name": "Systems Studio", "building": "Turing Hall", "capacity": 44, "school_id": "SCS", "features": ["computers", "projector", "network_lab"]},
+    {"id": "CS-310", "name": "Computer Science Theatre", "building": "Turing Hall", "capacity": 80, "school_id": "SCS", "features": ["projector"]},
+    {"id": "AI-110", "name": "AI Teaching Lab", "building": "Lovelace Centre", "capacity": 42, "school_id": "SAI", "features": ["computers", "gpu_workstations", "projector"]},
+    {"id": "AI-220", "name": "Robotics Studio", "building": "Lovelace Centre", "capacity": 36, "school_id": "SAI", "features": ["computers", "robotics_kits", "projector"]},
+    {"id": "AI-305", "name": "AI Lecture Room", "building": "Lovelace Centre", "capacity": 72, "school_id": "SAI", "features": ["projector"]},
+    {"id": "UNI-001", "name": "University Auditorium", "building": "Central Building", "capacity": 140, "school_id": null, "features": ["projector", "video_conference"]},
+    {"id": "UNI-014", "name": "Collaborative Seminar Room", "building": "Central Building", "capacity": 32, "school_id": null, "features": ["projector", "video_conference"]}
+  ],
+  "course_sections": [
+    {"id": "CS101-A", "code": "CS101", "title": "Programming Fundamentals", "school_id": "SCS", "subject_area": "Software Foundations", "program": "BSc Computer Science", "cohort_ids": ["CS-Y1-A"], "instructor_ids": ["CS-L01"], "meetings_per_week": 2, "duration_slots": 2, "expected_students": 46, "required_room_features": ["computers"]},
+    {"id": "CS102-A", "code": "CS102", "title": "Discrete Mathematics", "school_id": "SCS", "subject_area": "Computing Theory", "program": "BSc Computer Science", "cohort_ids": ["CS-Y1-A"], "instructor_ids": ["CS-P01"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 46, "required_room_features": ["projector"]},
+    {"id": "CS201-A", "code": "CS201", "title": "Data Structures and Algorithms", "school_id": "SCS", "subject_area": "Software Foundations", "program": "BSc Computer Science", "cohort_ids": ["CS-Y2-A"], "instructor_ids": ["CS-P02"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 42, "required_room_features": ["projector"]},
+    {"id": "CS202-A", "code": "CS202", "title": "Operating Systems", "school_id": "SCS", "subject_area": "Systems", "program": "BSc Computer Science", "cohort_ids": ["CS-Y2-A"], "instructor_ids": ["CS-L02"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 42, "required_room_features": ["projector"]},
+    {"id": "CS203-L", "code": "CS203", "title": "Systems Laboratory", "school_id": "SCS", "subject_area": "Systems", "program": "BSc Computer Science", "cohort_ids": ["CS-Y2-A"], "instructor_ids": ["CS-L02", "CS-M01"], "meetings_per_week": 1, "duration_slots": 2, "expected_students": 38, "required_room_features": ["computers", "network_lab"]},
+    {"id": "CS301-A", "code": "CS301", "title": "Database Systems", "school_id": "SCS", "subject_area": "Data Engineering", "program": "BSc Computer Science", "cohort_ids": ["CS-Y3-A"], "instructor_ids": ["CS-P01"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 38, "required_room_features": ["projector"]},
+    {"id": "AI101-A", "code": "AI101", "title": "Foundations of Artificial Intelligence", "school_id": "SAI", "subject_area": "Artificial Intelligence", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y1-A"], "instructor_ids": ["AI-P01"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 40, "required_room_features": ["projector"]},
+    {"id": "AI102-L", "code": "AI102", "title": "Python for Intelligent Systems", "school_id": "SAI", "subject_area": "AI Engineering", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y1-A"], "instructor_ids": ["AI-L01", "AI-M01"], "meetings_per_week": 1, "duration_slots": 2, "expected_students": 40, "required_room_features": ["computers"]},
+    {"id": "AI201-A", "code": "AI201", "title": "Machine Learning", "school_id": "SAI", "subject_area": "Machine Learning", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y2-A"], "instructor_ids": ["AI-P02"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 38, "required_room_features": ["projector"]},
+    {"id": "AI202-A", "code": "AI202", "title": "Probability for AI", "school_id": "SAI", "subject_area": "Mathematical Foundations", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y2-A"], "instructor_ids": ["CS-P02"], "meetings_per_week": 2, "duration_slots": 1, "expected_students": 38, "required_room_features": ["projector"]},
+    {"id": "AI203-L", "code": "AI203", "title": "Machine Learning Laboratory", "school_id": "SAI", "subject_area": "Machine Learning", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y2-A"], "instructor_ids": ["AI-P02", "AI-M01"], "meetings_per_week": 1, "duration_slots": 2, "expected_students": 36, "required_room_features": ["computers", "gpu_workstations"]},
+    {"id": "AI301-A", "code": "AI301", "title": "Deep Learning Systems", "school_id": "SAI", "subject_area": "Machine Learning", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y3-A"], "instructor_ids": ["AI-P01"], "meetings_per_week": 1, "duration_slots": 2, "expected_students": 34, "required_room_features": ["computers", "gpu_workstations"]},
+    {"id": "AI302-A", "code": "AI302", "title": "Responsible AI", "school_id": "SAI", "subject_area": "AI Governance", "program": "BSc Artificial Intelligence", "cohort_ids": ["AI-Y3-A"], "instructor_ids": ["AI-L02"], "meetings_per_week": 1, "duration_slots": 1, "expected_students": 34, "required_room_features": ["projector"]},
+    {"id": "UNI210-A", "code": "UNI210", "title": "Algorithmic Problem Solving", "school_id": "SCS", "subject_area": "Interdisciplinary Computing", "program": "University Elective", "cohort_ids": ["CS-Y1-A", "AI-Y1-A"], "instructor_ids": ["CS-P02"], "meetings_per_week": 1, "duration_slots": 1, "expected_students": 86, "required_room_features": ["projector"], "preferred_slot_ids": ["WED-3", "THU-3", "FRI-3"]}
+  ]
+}
