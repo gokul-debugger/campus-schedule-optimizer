@@ -75,7 +75,7 @@ the schools into one university-wide scheduling problem.
 | Academic conflicts | Undirected adjacency-list graph | Represents shared cohorts and instructors |
 | Variable selection | Minimum Remaining Values | Schedules the most constrained meeting first |
 | Tie breaking | Conflict-graph degree | Prioritizes meetings affecting more neighbors |
-| Candidate ordering | Weighted preference score | Favors preferred times and home-school rooms |
+| Candidate ordering | Incremental soft-objective score | Favors preferred times, home-school rooms, and balanced daily loads |
 | Constraint solving | Backtracking with early rejection | Recovers when a locally valid choice blocks the timetable |
 | Substitute matching | Eligibility filtering with scarce-first assignment | Finds qualified, available cover without timetable collisions |
 | Resource tracking | Hash sets and indexed dictionaries | Detects room, staff, and cohort collisions efficiently |
@@ -103,6 +103,8 @@ The Streamlit interface includes:
 - complete course, instructor, room, and building details
 - room-utilization and teaching-workload views
 - algorithm diagnostics and independent validation results
+- schedule-quality metrics for preferences, room affinity, and daily workload
+- downloadable staff and cohort daily-load report
 - JSON configuration upload
 - validated JSON configuration export
 - timetable CSV export
@@ -136,6 +138,7 @@ campus-schedule-optimizer/
 │   ├── io.py
 │   ├── models.py
 │   ├── operations.py
+│   ├── quality.py
 │   ├── reporting.py
 │   └── scheduler.py
 ├── tests/
@@ -225,16 +228,18 @@ The test suite covers graph construction, editable-table conversion, configurati
 validation, cross-school staff rules, cohort references, room suitability, complete
 schedule generation, recurring-meeting distribution, independent verification,
 permanent availability updates, substitute eligibility, cover-plan validation, and
-calendar generation, and impossible schedules. GitHub Actions runs linting and
-tests for every push and pull request.
+calendar generation, soft-objective scoring, daily workload balancing, and
+impossible schedules. GitHub Actions runs linting and tests for every push and
+pull request.
 
 ## Current Scope
 
 The search engine is designed for small and medium teaching schedules. Very large
 universities may require decomposition by school, constraint programming, or an
 integer optimization backend. Current soft preferences cover preferred periods
-and home-school rooms; instructor workload balancing and student choice groups
-are suitable next additions.
+and home-school rooms, while pairwise daily-load costs discourage concentrated
+staff and cohort schedules. Student choice groups and a large-scale constraint
+programming backend are suitable next additions.
 
 ## Author
 

@@ -8,6 +8,12 @@ from time import perf_counter
 
 from unischedule.graph import build_conflict_graph, graph_density
 from unischedule.models import CourseSection, ScheduledMeeting, University
+from unischedule.quality import (
+    COHORT_DAILY_PAIR_WEIGHT,
+    STAFF_DAILY_PAIR_WEIGHT,
+    pair_cost,
+    placement_penalty,
+)
 
 MeetingKey = tuple[str, int]
 
@@ -41,6 +47,8 @@ class UniversityScheduler:
         self.staff = {member.id: member for member in university.staff}
         self.rooms = {room.id: room for room in university.rooms}
         self.slots = {slot.id: slot for slot in university.slots}
+        self.slot_periods = {slot.id: slot.period for slot in university.slots}
+        self.latest_period = max(self.slot_periods.values(), default=0)
         self.graph = build_conflict_graph(university.sections)
         self._blocks = self._build_contiguous_blocks()
         self._states = 0
@@ -139,14 +147,23 @@ class UniversityScheduler:
         occupied_rooms: dict[str, set[str]] = defaultdict(set)
         occupied_sections: dict[str, set[str]] = defaultdict(set)
         section_days: set[str] = set()
+        staff_daily_loads: Counter[tuple[str, str]] = Counter()
+        cohort_daily_loads: Counter[tuple[str, str]] = Counter()
 
         for assigned_key, assigned in assignments.items():
             assigned_section_id = assigned_key[0]
+            assigned_section = self.sections[assigned_section_id]
+            assigned_day = self.slots[assigned.slot_ids[0]].day
+            assigned_duration = len(assigned.slot_ids)
             for slot_id in assigned.slot_ids:
                 occupied_rooms[slot_id].add(assigned.room_id)
                 occupied_sections[slot_id].add(assigned_section_id)
+            for instructor_id in assigned_section.instructor_ids:
+                staff_daily_loads[(instructor_id, assigned_day)] += assigned_duration
+            for cohort_id in assigned_section.cohort_ids:
+                cohort_daily_loads[(cohort_id, assigned_day)] += assigned_duration
             if assigned_section_id == section.id:
-                section_days.add(self.slots[assigned.slot_ids[0]].day)
+                section_days.add(assigned_day)
 
         suitable_rooms = [
             room
@@ -170,7 +187,14 @@ class UniversityScheduler:
             for room in suitable_rooms:
                 if any(room.id in occupied_rooms[slot_id] for slot_id in block):
                     continue
-                penalty = self._candidate_penalty(section, block, room.school_id)
+                penalty = self._candidate_penalty(
+                    section,
+                    block,
+                    room.school_id,
+                    day,
+                    staff_daily_loads,
+                    cohort_daily_loads,
+                )
                 candidates.append(Candidate(block, room.id, penalty))
 
         return sorted(
@@ -201,15 +225,28 @@ class UniversityScheduler:
         section: CourseSection,
         block: tuple[str, ...],
         room_school_id: str | None,
+        day: str,
+        staff_daily_loads: Counter[tuple[str, str]],
+        cohort_daily_loads: Counter[tuple[str, str]],
     ) -> int:
-        penalty = 0
-        if section.preferred_slot_ids and not set(block) <= section.preferred_slot_ids:
-            penalty += 3
-        if room_school_id not in {None, section.school_id}:
-            penalty += 2
-        start_period = self.slots[block[0]].period
-        if start_period == max(slot.period for slot in self.university.slots):
-            penalty += 1
+        penalty = placement_penalty(
+            section,
+            block,
+            room_school_id,
+            self.slot_periods,
+            self.latest_period,
+        )
+        duration = len(block)
+        for instructor_id in section.instructor_ids:
+            current = staff_daily_loads[(instructor_id, day)]
+            penalty += STAFF_DAILY_PAIR_WEIGHT * (
+                pair_cost(current + duration) - pair_cost(current)
+            )
+        for cohort_id in section.cohort_ids:
+            current = cohort_daily_loads[(cohort_id, day)]
+            penalty += COHORT_DAILY_PAIR_WEIGHT * (
+                pair_cost(current + duration) - pair_cost(current)
+            )
         return penalty
 
     def _build_contiguous_blocks(self) -> dict[int, tuple[tuple[str, ...], ...]]:

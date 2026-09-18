@@ -34,6 +34,7 @@ from unischedule.operations import (  # noqa: E402
     update_staff_availability,
     validate_coverage_assignments,
 )
+from unischedule.quality import evaluate_schedule_quality  # noqa: E402
 from unischedule.reporting import (  # noqa: E402
     room_utilization,
     schedule_records,
@@ -326,6 +327,11 @@ if notice := st.session_state.pop("notice", None):
 
 result = st.session_state["schedule_result"]
 violations = validate_schedule(university, result)
+quality = (
+    evaluate_schedule_quality(university, result.meetings)
+    if result.success
+    else None
+)
 records = schedule_records(university, result) if result.success else []
 schedule_df = pd.DataFrame(records)
 school_lookup = {school.id: school.name for school in university.schools}
@@ -898,6 +904,91 @@ with algorithm_tab:
         {"stage": "Verification", "method": "Independent constraint pass"},
     ]
     st.dataframe(pd.DataFrame(method_rows), hide_index=True, width="stretch")
+    st.subheader("Schedule quality")
+    st.caption(
+        "Soft objectives guide candidate ordering after every hard constraint has "
+        "been satisfied. Lower penalty is better."
+    )
+    if quality is not None:
+        preference_value = (
+            f"{quality.preference_satisfaction_rate:.0%}"
+            if quality.preference_satisfaction_rate is not None
+            else "Not configured"
+        )
+        room_affinity_value = (
+            f"{quality.room_affinity_rate:.0%}"
+            if quality.room_affinity_rate is not None
+            else "Not available"
+        )
+        quality_metrics = st.columns(5)
+        quality_metrics[0].metric("Soft penalty", quality.soft_penalty)
+        quality_metrics[1].metric("Preferred placements", preference_value)
+        quality_metrics[2].metric("Home/shared rooms", room_affinity_value)
+        quality_metrics[3].metric(
+            "Peak staff day",
+            f"{quality.max_staff_daily_periods} periods",
+        )
+        quality_metrics[4].metric(
+            "Peak cohort day",
+            f"{quality.max_cohort_daily_periods} periods",
+        )
+        st.caption(
+            f"Late-period meetings: {quality.late_period_meetings} of "
+            f"{quality.total_meetings}. Daily concentration is measured with "
+            "pairwise load cost, so crowded days become progressively less "
+            "attractive during search."
+        )
+
+        staff_load_df = pd.DataFrame(
+            [
+                {
+                    "resource_type": "Staff",
+                    "resource": staff_lookup[load.resource_id],
+                    "day": load.day,
+                    "scheduled_periods": load.periods,
+                }
+                for load in quality.staff_daily_loads
+            ]
+        )
+        cohort_load_df = pd.DataFrame(
+            [
+                {
+                    "resource_type": "Cohort",
+                    "resource": cohort_lookup[load.resource_id],
+                    "day": load.day,
+                    "scheduled_periods": load.periods,
+                }
+                for load in quality.cohort_daily_loads
+            ]
+        )
+        load_columns = st.columns(2)
+        with load_columns[0]:
+            st.markdown("**Staff daily load**")
+            st.dataframe(
+                staff_load_df.drop(columns="resource_type").rename(
+                    columns={"resource": "staff_member"}
+                ),
+                hide_index=True,
+                width="stretch",
+                height=260,
+            )
+        with load_columns[1]:
+            st.markdown("**Cohort daily load**")
+            st.dataframe(
+                cohort_load_df.drop(columns="resource_type").rename(
+                    columns={"resource": "cohort"}
+                ),
+                hide_index=True,
+                width="stretch",
+                height=260,
+            )
+        st.download_button(
+            "Download daily load report",
+            data=csv_download(pd.concat([staff_load_df, cohort_load_df])),
+            file_name="schedule_daily_loads.csv",
+            mime="text/csv",
+            icon=":material/download:",
+        )
     st.subheader("Independent validation")
     if violations:
         for violation in violations:
