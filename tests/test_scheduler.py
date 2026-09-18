@@ -101,3 +101,57 @@ def test_scheduler_reports_an_impossible_timetable() -> None:
     assert not result.success
     assert result.meetings == ()
     assert result.backtracks > 0
+
+
+def test_scheduler_spreads_shared_staff_work_across_days() -> None:
+    school = School(id="S1", name="School One", code="S1")
+    cohorts = (
+        Cohort("C1", "Cohort One", "S1", "BSc", 20),
+        Cohort("C2", "Cohort Two", "S1", "BSc", 20),
+    )
+    slots = (
+        TimeSlot("MON-1", "Monday", 1, "09:00", "10:00"),
+        TimeSlot("MON-2", "Monday", 2, "10:00", "11:00"),
+        TimeSlot("TUE-1", "Tuesday", 1, "09:00", "10:00"),
+        TimeSlot("ZZZ-3", "Friday", 3, "11:00", "12:00"),
+    )
+    staff = StaffMember("T1", "Teacher", "Professor", ("S1",))
+    room = Room("R1", "Room", "Main", 30, "S1")
+    first = CourseSection(
+        id="A",
+        code="A",
+        title="A",
+        school_id="S1",
+        subject_area="Core",
+        program="BSc",
+        cohort_ids=("C1",),
+        instructor_ids=("T1",),
+        meetings_per_week=1,
+        duration_slots=1,
+        expected_students=20,
+    )
+    second = replace(
+        first,
+        id="B",
+        code="B",
+        title="B",
+        cohort_ids=("C2",),
+    )
+    university = University(
+        "Test University",
+        (school,),
+        cohorts,
+        slots,
+        (staff,),
+        (room,),
+        (first, second),
+    )
+
+    result = UniversityScheduler(university).solve()
+    scheduled_days = {
+        next(slot.day for slot in slots if slot.id == meeting.slot_ids[0])
+        for meeting in result.meetings
+    }
+
+    assert result.success
+    assert scheduled_days == {"Monday", "Tuesday"}
