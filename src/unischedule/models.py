@@ -22,6 +22,14 @@ class Cohort:
 
 
 @dataclass(frozen=True, slots=True)
+class StudentGroup:
+    id: str
+    name: str
+    cohort_id: str
+    size: int
+
+
+@dataclass(frozen=True, slots=True)
 class TimeSlot:
     id: str
     day: str
@@ -66,6 +74,7 @@ class CourseSection:
     required_room_features: frozenset[str] = field(default_factory=frozenset)
     preferred_slot_ids: frozenset[str] = field(default_factory=frozenset)
     unavailable_slot_ids: frozenset[str] = field(default_factory=frozenset)
+    student_group_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +86,7 @@ class University:
     staff: tuple[StaffMember, ...]
     rooms: tuple[Room, ...]
     sections: tuple[CourseSection, ...]
+    student_groups: tuple[StudentGroup, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

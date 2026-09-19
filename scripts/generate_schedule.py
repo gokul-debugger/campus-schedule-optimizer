@@ -23,6 +23,7 @@ REPORT_COLUMNS = (
     "subject_area",
     "program",
     "cohorts",
+    "student_groups",
     "instructors",
     "room",
     "building",

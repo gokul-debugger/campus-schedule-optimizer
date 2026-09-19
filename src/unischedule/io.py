@@ -12,6 +12,7 @@ from unischedule.models import (
     Room,
     School,
     StaffMember,
+    StudentGroup,
     TimeSlot,
     University,
 )
@@ -52,6 +53,15 @@ def university_from_dict(data: dict[str, Any]) -> University:
         )
         for item in data["cohorts"]
     )
+    student_groups = tuple(
+        StudentGroup(
+            id=item["id"],
+            name=item["name"],
+            cohort_id=item["cohort_id"],
+            size=int(item["size"]),
+        )
+        for item in data.get("student_groups", [])
+    )
     slots = tuple(TimeSlot(**item) for item in data["time_slots"])
     staff = tuple(
         StaffMember(
@@ -91,6 +101,7 @@ def university_from_dict(data: dict[str, Any]) -> University:
             required_room_features=_as_set(item.get("required_room_features")),
             preferred_slot_ids=_as_set(item.get("preferred_slot_ids")),
             unavailable_slot_ids=_as_set(item.get("unavailable_slot_ids")),
+            student_group_ids=_as_tuple(item.get("student_group_ids")),
         )
         for item in data["course_sections"]
     )
@@ -103,6 +114,7 @@ def university_from_dict(data: dict[str, Any]) -> University:
         staff=staff,
         rooms=rooms,
         sections=sections,
+        student_groups=student_groups,
     )
     validate_university(university)
     return university
@@ -113,6 +125,7 @@ def validate_university(university: University) -> None:
     collections = {
         "school": university.schools,
         "cohort": university.cohorts,
+        "student group": university.student_groups,
         "time slot": university.slots,
         "staff member": university.staff,
         "room": university.rooms,
@@ -128,6 +141,8 @@ def validate_university(university: University) -> None:
     slot_ids = {slot.id for slot in university.slots}
     staff_ids = {member.id for member in university.staff}
     staff_by_id = {member.id: member for member in university.staff}
+    student_group_ids = {group.id for group in university.student_groups}
+    student_groups_by_id = {group.id: group for group in university.student_groups}
 
     for cohort in university.cohorts:
         if cohort.school_id not in school_ids:
@@ -136,6 +151,28 @@ def validate_university(university: University) -> None:
             )
         if cohort.size <= 0:
             raise UniversityDataError(f"Cohort {cohort.id} must have positive size")
+
+    if cohort_ids & student_group_ids:
+        raise UniversityDataError("Cohort and student-group IDs must be distinct")
+
+    group_sizes_by_cohort: dict[str, int] = {cohort_id: 0 for cohort_id in cohort_ids}
+    for group in university.student_groups:
+        if group.cohort_id not in cohort_ids:
+            raise UniversityDataError(
+                f"Student group {group.id} refers to an unknown cohort"
+            )
+        if group.size <= 0:
+            raise UniversityDataError(
+                f"Student group {group.id} must have positive size"
+            )
+        group_sizes_by_cohort[group.cohort_id] += group.size
+
+    cohorts_by_id = {cohort.id: cohort for cohort in university.cohorts}
+    for cohort_id, grouped_size in group_sizes_by_cohort.items():
+        if grouped_size and grouped_size != cohorts_by_id[cohort_id].size:
+            raise UniversityDataError(
+                f"Student groups for cohort {cohort_id} must total its cohort size"
+            )
 
     for member in university.staff:
         _require_subset(
@@ -170,6 +207,36 @@ def validate_university(university: University) -> None:
             cohort_ids,
             f"section {section.id} cohorts",
         )
+        _require_subset(
+            section.student_group_ids,
+            student_group_ids,
+            f"section {section.id} student groups",
+        )
+        if section.student_group_ids:
+            if len(section.student_group_ids) != len(
+                set(section.student_group_ids)
+            ):
+                raise UniversityDataError(
+                    f"Section {section.id} repeats a student group"
+                )
+            group_cohort_ids = {
+                student_groups_by_id[group_id].cohort_id
+                for group_id in section.student_group_ids
+            }
+            if group_cohort_ids != set(section.cohort_ids):
+                raise UniversityDataError(
+                    f"Section {section.id} student groups must represent every "
+                    "listed cohort"
+                )
+            selected_capacity = sum(
+                student_groups_by_id[group_id].size
+                for group_id in section.student_group_ids
+            )
+            if section.expected_students > selected_capacity:
+                raise UniversityDataError(
+                    f"Section {section.id} expects more students than its selected "
+                    "groups contain"
+                )
         unauthorized = [
             instructor_id
             for instructor_id in section.instructor_ids

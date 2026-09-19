@@ -211,6 +211,10 @@ def timetable_filter(
 ) -> pd.DataFrame:
     if view == "Cohort":
         mask = schedule["cohort_ids"].apply(lambda values: selected_id in values)
+    elif view == "Student group":
+        mask = schedule["learner_resource_ids"].apply(
+            lambda values: selected_id in values
+        )
     elif view == "Instructor":
         mask = schedule["instructor_ids"].apply(lambda values: selected_id in values)
     elif view == "Room":
@@ -335,10 +339,14 @@ quality = (
 records = schedule_records(university, result) if result.success else []
 schedule_df = pd.DataFrame(records)
 school_lookup = {school.id: school.name for school in university.schools}
+student_group_lookup = {
+    group.id: group.name for group in university.student_groups
+}
 staff_lookup = {member.id: member.name for member in university.staff}
 staff_role_lookup = {member.id: member.role for member in university.staff}
 room_lookup = {room.id: room.name for room in university.rooms}
 cohort_lookup = {cohort.id: cohort.name for cohort in university.cohorts}
+learner_lookup = cohort_lookup | student_group_lookup
 slot_lookup = {slot.id: slot for slot in university.slots}
 section_lookup = {section.id: section for section in university.sections}
 colors = school_color_map(list(school_lookup))
@@ -366,16 +374,19 @@ st.caption(university.name)
 
 metric_columns = st.columns(6)
 metric_columns[0].metric("Schools", len(university.schools))
-metric_columns[1].metric("Cohorts", len(university.cohorts))
+metric_columns[1].metric(
+    "Cohorts/groups",
+    f"{len(university.cohorts)} / {len(university.student_groups)}",
+)
 metric_columns[2].metric("Course sections", len(university.sections))
 metric_columns[3].metric("Teaching staff", len(university.staff))
 metric_columns[4].metric("Rooms", len(university.rooms))
-metric_columns[5].metric("Scheduled periods", len(schedule_df))
+metric_columns[5].metric("Periods", len(schedule_df))
 
 if result.success and not violations:
     st.markdown(
         '<div class="status-ok"><strong>Schedule valid</strong><br>'
-        "All meetings are assigned without staff, cohort, or room conflicts.</div>",
+        "All meetings are assigned without staff, student, or room conflicts.</div>",
         unsafe_allow_html=True,
     )
 else:
@@ -407,14 +418,19 @@ with schedule_tab:
     if not result.success:
         st.warning(result.message)
     else:
-        control_columns = st.columns([1, 2])
+        control_columns = st.columns([2, 2])
+        view_options = ["Cohort"]
+        if student_group_lookup:
+            view_options.append("Student group")
+        view_options.extend(["Instructor", "Room", "School"])
         view = control_columns[0].segmented_control(
             "View by",
-            ["Cohort", "Instructor", "Room", "School"],
+            view_options,
             default="Cohort",
         ) or "Cohort"
         lookup_by_view = {
             "Cohort": cohort_lookup,
+            "Student group": student_group_lookup,
             "Instructor": staff_lookup,
             "Room": room_lookup,
             "School": school_lookup,
@@ -436,6 +452,7 @@ with schedule_tab:
             "course",
             "title",
             "cohorts",
+            "student_groups",
             "instructors",
             "room",
         ]
@@ -518,11 +535,18 @@ with schools_tab:
     school_rooms = [
         room for room in university.rooms if room.school_id == selected_school_id
     ]
-    summary_columns = st.columns(4)
+    school_cohort_ids = {cohort.id for cohort in school_cohorts}
+    school_groups = [
+        group
+        for group in university.student_groups
+        if group.cohort_id in school_cohort_ids
+    ]
+    summary_columns = st.columns(5)
     summary_columns[0].metric("Cohorts", len(school_cohorts))
-    summary_columns[1].metric("Staff", len(school_staff))
-    summary_columns[2].metric("Course sections", len(school_sections))
-    summary_columns[3].metric("Dedicated rooms", len(school_rooms))
+    summary_columns[1].metric("Student groups", len(school_groups))
+    summary_columns[2].metric("Staff", len(school_staff))
+    summary_columns[3].metric("Course sections", len(school_sections))
+    summary_columns[4].metric("Dedicated rooms", len(school_rooms))
 
     section_rows = [
         {
@@ -531,6 +555,8 @@ with schools_tab:
             "subject_area": section.subject_area,
             "program": section.program,
             "cohorts": ", ".join(section.cohort_ids),
+            "student_groups": ", ".join(section.student_group_ids)
+            or "Whole cohort",
             "weekly_meetings": section.meetings_per_week,
         }
         for section in school_sections
@@ -929,8 +955,8 @@ with algorithm_tab:
             f"{quality.max_staff_daily_periods} periods",
         )
         quality_metrics[4].metric(
-            "Peak cohort day",
-            f"{quality.max_cohort_daily_periods} periods",
+            "Peak learner day",
+            f"{quality.max_learner_daily_periods} periods",
         )
         st.caption(
             f"Late-period meetings: {quality.late_period_meetings} of "
@@ -950,15 +976,19 @@ with algorithm_tab:
                 for load in quality.staff_daily_loads
             ]
         )
-        cohort_load_df = pd.DataFrame(
+        learner_load_df = pd.DataFrame(
             [
                 {
-                    "resource_type": "Cohort",
-                    "resource": cohort_lookup[load.resource_id],
+                    "resource_type": (
+                        "Student group"
+                        if load.resource_id in student_group_lookup
+                        else "Cohort"
+                    ),
+                    "resource": learner_lookup[load.resource_id],
                     "day": load.day,
                     "scheduled_periods": load.periods,
                 }
-                for load in quality.cohort_daily_loads
+                for load in quality.learner_daily_loads
             ]
         )
         load_columns = st.columns(2)
@@ -973,10 +1003,10 @@ with algorithm_tab:
                 height=260,
             )
         with load_columns[1]:
-            st.markdown("**Cohort daily load**")
+            st.markdown("**Learner daily load**")
             st.dataframe(
-                cohort_load_df.drop(columns="resource_type").rename(
-                    columns={"resource": "cohort"}
+                learner_load_df.rename(
+                    columns={"resource": "learner_resource"}
                 ),
                 hide_index=True,
                 width="stretch",
@@ -984,7 +1014,7 @@ with algorithm_tab:
             )
         st.download_button(
             "Download daily load report",
-            data=csv_download(pd.concat([staff_load_df, cohort_load_df])),
+            data=csv_download(pd.concat([staff_load_df, learner_load_df])),
             file_name="schedule_daily_loads.csv",
             mime="text/csv",
             icon=":material/download:",
@@ -1028,7 +1058,15 @@ with config_tab:
         {row["subject_area"] for row in rows["course_sections"]}
     )
     editor_tabs = st.tabs(
-        ["Schools", "Cohorts", "Time slots", "Staff", "Rooms", "Courses"]
+        [
+            "Schools",
+            "Cohorts",
+            "Student groups",
+            "Time slots",
+            "Staff",
+            "Rooms",
+            "Courses",
+        ]
     )
 
     with editor_tabs[0]:
@@ -1076,6 +1114,36 @@ with config_tab:
     ]
 
     with editor_tabs[2]:
+        student_groups_edit = st.data_editor(
+            editor_dataframe(
+                rows["student_groups"],
+                ["id", "name", "cohort_id", "size"],
+            ),
+            column_config={
+                "cohort_id": st.column_config.SelectboxColumn(
+                    "Cohort",
+                    options=edited_cohort_ids,
+                    required=True,
+                ),
+                "size": st.column_config.NumberColumn(
+                    "Students",
+                    min_value=1,
+                    step=1,
+                    required=True,
+                ),
+            },
+            num_rows="dynamic",
+            hide_index=True,
+            width="stretch",
+            key=f"student_groups_{version}",
+        )
+    edited_student_group_ids = [
+        value.strip()
+        for value in student_groups_edit["id"].tolist()
+        if isinstance(value, str) and value.strip()
+    ]
+
+    with editor_tabs[3]:
         slots_edit = st.data_editor(
             editor_dataframe(
                 rows["time_slots"],
@@ -1112,7 +1180,7 @@ with config_tab:
         if isinstance(value, str) and value.strip()
     ]
 
-    with editor_tabs[3]:
+    with editor_tabs[4]:
         staff_edit = st.data_editor(
             editor_dataframe(
                 rows["staff"],
@@ -1161,7 +1229,7 @@ with config_tab:
         if isinstance(value, str) and value.strip()
     ]
 
-    with editor_tabs[4]:
+    with editor_tabs[5]:
         rooms_edit = st.data_editor(
             editor_dataframe(
                 rows["rooms"],
@@ -1189,7 +1257,7 @@ with config_tab:
             key=f"rooms_{version}",
         )
 
-    with editor_tabs[5]:
+    with editor_tabs[6]:
         courses_edit = st.data_editor(
             editor_dataframe(
                 rows["course_sections"],
@@ -1201,6 +1269,7 @@ with config_tab:
                     "subject_area",
                     "program",
                     "cohort_ids",
+                    "student_group_ids",
                     "instructor_ids",
                     "meetings_per_week",
                     "duration_slots",
@@ -1220,6 +1289,11 @@ with config_tab:
                     "Cohorts",
                     options=edited_cohort_ids,
                     required=True,
+                ),
+                "student_group_ids": st.column_config.MultiselectColumn(
+                    "Elective student groups",
+                    options=edited_student_group_ids,
+                    help="Leave empty when the entire listed cohort attends.",
                 ),
                 "instructor_ids": st.column_config.MultiselectColumn(
                     "Teaching staff",
@@ -1284,6 +1358,7 @@ with config_tab:
             tables = {
                 "schools": schools_edit.to_dict("records"),
                 "cohorts": cohorts_edit.to_dict("records"),
+                "student_groups": student_groups_edit.to_dict("records"),
                 "staff": staff_edit.to_dict("records"),
                 "rooms": rooms_edit.to_dict("records"),
                 "time_slots": slots_edit.to_dict("records"),

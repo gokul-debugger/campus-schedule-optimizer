@@ -11,6 +11,7 @@ from unischedule.models import (
     Room,
     School,
     StaffMember,
+    StudentGroup,
     TimeSlot,
     University,
 )
@@ -37,6 +38,11 @@ def test_demo_schedule_is_complete_and_valid() -> None:
     )
     assert records[0]["day"] == "Monday"
     assert "Year" in records[0]["cohorts"]
+    elective_record = next(
+        record for record in records if record["section_id"] == "CS301-A"
+    )
+    assert elective_record["student_groups"] == "Data Systems Track"
+    assert elective_record["learner_resource_ids"] == ("CS-Y3-DATA",)
     assert sum(workload_by_staff(result, university).values()) > 0
 
 
@@ -155,3 +161,59 @@ def test_scheduler_spreads_shared_staff_work_across_days() -> None:
 
     assert result.success
     assert scheduled_days == {"Monday", "Tuesday"}
+
+
+def test_disjoint_elective_groups_can_share_a_period() -> None:
+    school = School("S1", "School One", "S1")
+    cohort = Cohort("Y3", "Year Three", "S1", "BSc", 20)
+    groups = (
+        StudentGroup("Y3-A", "Track A", "Y3", 10),
+        StudentGroup("Y3-B", "Track B", "Y3", 10),
+    )
+    slot = TimeSlot("MON-1", "Monday", 1, "09:00", "10:00")
+    staff = (
+        StaffMember("T1", "Teacher One", "Professor", ("S1",)),
+        StaffMember("T2", "Teacher Two", "Professor", ("S1",)),
+    )
+    rooms = (
+        Room("R1", "Room One", "Main", 20, "S1"),
+        Room("R2", "Room Two", "Main", 20, "S1"),
+    )
+    first = CourseSection(
+        id="A",
+        code="A",
+        title="Track A Course",
+        school_id="S1",
+        subject_area="Core",
+        program="BSc",
+        cohort_ids=("Y3",),
+        instructor_ids=("T1",),
+        meetings_per_week=1,
+        duration_slots=1,
+        expected_students=10,
+        student_group_ids=("Y3-A",),
+    )
+    second = replace(
+        first,
+        id="B",
+        code="B",
+        title="Track B Course",
+        instructor_ids=("T2",),
+        student_group_ids=("Y3-B",),
+    )
+    university = University(
+        "Test University",
+        (school,),
+        (cohort,),
+        (slot,),
+        staff,
+        rooms,
+        (first, second),
+        groups,
+    )
+
+    result = UniversityScheduler(university).solve()
+
+    assert result.success
+    assert {meeting.slot_ids for meeting in result.meetings} == {("MON-1",)}
+    assert validate_schedule(university, result) == []

@@ -37,7 +37,9 @@ The scheduler assigns every course meeting to a time and room while enforcing
 these constraints:
 
 - professors, lecturers, and mentors cannot teach two classes at once
-- student cohorts cannot attend overlapping classes
+- whole cohorts cannot attend overlapping classes
+- elective groups within one cohort may attend different classes in parallel
+- a whole-cohort class blocks every student group in that cohort
 - rooms cannot be double-booked
 - room capacity must meet expected enrollment
 - laboratories must provide all required equipment
@@ -54,52 +56,59 @@ search algorithm alone.
 University
 ├── School of Computer Science
 │   ├── BSc Computer Science cohorts
+│   ├── Data Systems and Cybersecurity elective groups
 │   ├── Software Foundations
 │   ├── Systems
 │   └── Data Engineering
 └── School of Artificial Intelligence
     ├── BSc Artificial Intelligence cohorts
+    ├── Applied AI and AI Governance elective groups
     ├── Machine Learning
     ├── AI Engineering
     └── AI Governance
 ```
 
-Each school can contain multiple programs and cohorts. Shared professors,
-university electives, central classrooms, and specialist laboratories connect
-the schools into one university-wide scheduling problem.
+Each school can contain multiple programs and cohorts. A cohort may be divided
+into a complete set of elective groups, allowing students on different tracks to
+attend separate classes at the same time. Shared professors, university
+electives, central classrooms, and specialist laboratories connect the schools
+into one university-wide scheduling problem.
 
 ## Algorithms and Data Structures
 
 | Component | Technique | Purpose |
 |---|---|---|
-| Academic conflicts | Undirected adjacency-list graph | Represents shared cohorts and instructors |
+| Academic conflicts | Undirected adjacency-list graph | Represents shared learners and instructors |
 | Variable selection | Minimum Remaining Values | Schedules the most constrained meeting first |
 | Tie breaking | Conflict-graph degree | Prioritizes meetings affecting more neighbors |
 | Candidate ordering | Incremental soft-objective score | Favors preferred times, home-school rooms, and balanced daily loads |
 | Constraint solving | Backtracking with early rejection | Recovers when a locally valid choice blocks the timetable |
 | Substitute matching | Eligibility filtering with scarce-first assignment | Finds qualified, available cover without timetable collisions |
-| Resource tracking | Hash sets and indexed dictionaries | Detects room, staff, and cohort collisions efficiently |
+| Resource tracking | Hash sets and indexed dictionaries | Detects room, staff, cohort, and group collisions efficiently |
 | Verification | Independent constraint pass | Checks every generated assignment for hard violations |
 
-For the included demonstration university, the engine schedules 22 meetings
-covering 28 occupied periods. A 50-run benchmark on an Apple Silicon laptop had
-a median runtime of approximately 65 ms. Runtime will increase with denser
-conflict graphs and more restricted availability.
+For the included demonstration university, the engine schedules 24 meetings
+covering 30 occupied periods. Two third-year elective pairs demonstrate safe
+parallel scheduling within one cohort. A 50-run benchmark on an Apple Silicon
+laptop had a median runtime of 81.16 ms and a 95th percentile of 85.54 ms.
+Runtime will increase with denser conflict graphs and more restricted availability.
 
 ## Application
 
 The Streamlit interface includes:
 
-- editable schools, cohorts, staff, rooms, periods, and course sections
+- editable schools, cohorts, student groups, staff, rooms, periods, and course
+  sections
 - linked selectors that prevent invalid cross-record references
 - permanent weekly availability management for every staff member
 - temporary emergency-leave recording and removal
 - qualified substitute suggestions with collision and absence checks
 - saved cover indicators on the weekly timetable
 - downloadable substitute coverage plans
-- recurring `.ics` calendar export by cohort, instructor, room, or school
+- recurring `.ics` calendar export by cohort, student group, instructor, room,
+  or school
 - university-wide schedule generation
-- weekly timetable views by cohort, instructor, room, and school
+- weekly timetable views by cohort, student group, instructor, room, and school
 - complete course, instructor, room, and building details
 - room-utilization and teaching-workload views
 - algorithm diagnostics and independent validation results
@@ -115,11 +124,13 @@ The included fictional dataset contains:
 |---|---:|
 | Academic schools | 2 |
 | Student cohorts | 6 |
-| Course sections | 14 |
+| Elective student groups | 4 |
+| Course sections | 15 |
 | Professors, lecturers, and mentors | 10 |
 | Teaching rooms and laboratories | 8 |
 | Available weekly periods | 25 |
-| Recurring meetings to schedule | 22 |
+| Recurring meetings to schedule | 24 |
+| Occupied periods | 30 |
 
 ## Project Structure
 
@@ -133,6 +144,7 @@ campus-schedule-optimizer/
 ├── scripts/generate_schedule.py
 ├── src/unischedule/
 │   ├── graph.py
+│   ├── attendance.py
 │   ├── calendar.py
 │   ├── configuration.py
 │   ├── io.py
@@ -179,13 +191,14 @@ python scripts/generate_schedule.py examples/demo_university.json \
 
 ## Configuration Format
 
-University data is supplied as JSON with six main collections:
+University data is supplied as JSON with seven main collections:
 
 ```json
 {
   "university": "Example University",
   "schools": [],
   "cohorts": [],
+  "student_groups": [],
   "time_slots": [],
   "staff": [],
   "rooms": [],
@@ -197,6 +210,12 @@ The Administration workspace edits the same structure used by the scheduler.
 Changes are converted back to JSON and validated before they replace the active
 configuration. Invalid references, unsuitable rooms, duplicate IDs, and incomplete
 rows are rejected without damaging the working schedule.
+
+`student_groups` is optional for backward compatibility. When groups are
+provided for a cohort, their sizes must form a complete, non-overlapping
+partition of that cohort. A course section with an empty `student_group_ids`
+list is attended by the whole cohort. A section with group IDs is attended only
+by those groups, so disjoint elective tracks can run in parallel.
 
 Staff records can include `qualified_subject_areas`. Substitute recommendations
 use these qualifications together with school affiliation, permanent availability,
@@ -225,10 +244,12 @@ python benchmarks/benchmark_demo.py
 ```
 
 The test suite covers graph construction, editable-table conversion, configuration
-validation, cross-school staff rules, cohort references, room suitability, complete
+validation, cross-school staff rules, cohort and student-group references, room
+suitability, complete
 schedule generation, recurring-meeting distribution, independent verification,
 permanent availability updates, substitute eligibility, cover-plan validation, and
-calendar generation, soft-objective scoring, daily workload balancing, and
+calendar generation, group-aware conflict detection, soft-objective scoring,
+daily workload balancing, and
 impossible schedules. GitHub Actions runs linting and tests for every push and
 pull request.
 
@@ -238,8 +259,8 @@ The search engine is designed for small and medium teaching schedules. Very larg
 universities may require decomposition by school, constraint programming, or an
 integer optimization backend. Current soft preferences cover preferred periods
 and home-school rooms, while pairwise daily-load costs discourage concentrated
-staff and cohort schedules. Student choice groups and a large-scale constraint
-programming backend are suitable next additions.
+staff and learner-group schedules. A large-scale constraint programming backend,
+student preference ranking, and enrollment-system imports are suitable next additions.
 
 ## Author
 
