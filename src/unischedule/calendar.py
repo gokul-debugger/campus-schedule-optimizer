@@ -39,6 +39,7 @@ def build_ics_calendar(
     sections = {section.id: section for section in university.sections}
     schools = {school.id: school for school in university.schools}
     cohorts = {cohort.id: cohort for cohort in university.cohorts}
+    student_groups = {group.id: group for group in university.student_groups}
     staff = {member.id: member for member in university.staff}
     rooms = {room.id: room for room in university.rooms}
     slots = {slot.id: slot for slot in university.slots}
@@ -70,10 +71,14 @@ def build_ics_calendar(
         cohort_names = ", ".join(
             cohorts[cohort_id].name for cohort_id in section.cohort_ids
         )
+        group_names = ", ".join(
+            student_groups[group_id].name for group_id in section.student_group_ids
+        )
         room = rooms[meeting.room_id]
         description = (
             f"School: {schools[section.school_id].name}\n"
             f"Cohorts: {cohort_names}\n"
+            f"Student groups: {group_names or 'Whole cohort'}\n"
             f"Teaching staff: {instructor_names}"
         )
         uid_school = re.sub(r"[^a-z0-9]+", "-", university.name.lower()).strip("-")

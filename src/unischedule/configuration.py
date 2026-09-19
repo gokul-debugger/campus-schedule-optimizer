@@ -12,6 +12,7 @@ from unischedule.io import UniversityDataError
 COLLECTIONS = (
     "schools",
     "cohorts",
+    "student_groups",
     "time_slots",
     "staff",
     "rooms",
@@ -26,6 +27,7 @@ LIST_FIELDS = {
     "rooms": ("features",),
     "course_sections": (
         "cohort_ids",
+        "student_group_ids",
         "instructor_ids",
         "required_room_features",
         "preferred_slot_ids",
@@ -69,6 +71,18 @@ def configuration_from_editor(
             "size": _positive_int(row.get("size"), "Cohort size"),
         }
         for row in _active_rows(tables.get("cohorts", []))
+    ]
+    data["student_groups"] = [
+        {
+            "id": _required_text(row.get("id"), "Student-group ID"),
+            "name": _required_text(row.get("name"), "Student-group name"),
+            "cohort_id": _required_text(
+                row.get("cohort_id"),
+                "Student-group cohort",
+            ),
+            "size": _positive_int(row.get("size"), "Student-group size"),
+        }
+        for row in _active_rows(tables.get("student_groups", []))
     ]
     data["time_slots"] = [
         {
@@ -116,6 +130,7 @@ def configuration_from_editor(
             ),
             "program": _required_text(row.get("program"), "Course program"),
             "cohort_ids": _list_value(row.get("cohort_ids")),
+            "student_group_ids": _list_value(row.get("student_group_ids")),
             "instructor_ids": _list_value(row.get("instructor_ids")),
             "meetings_per_week": _positive_int(
                 row.get("meetings_per_week"),
@@ -141,6 +156,8 @@ def configuration_from_editor(
     ]
 
     for collection in COLLECTIONS:
+        if collection == "student_groups":
+            continue
         if not data[collection]:
             label = collection.replace("_", " ")
             raise UniversityDataError(f"At least one {label} row is required")

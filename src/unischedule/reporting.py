@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from typing import Any
 
+from unischedule.attendance import groups_by_cohort, learner_resource_ids
+from unischedule.graph import students_conflict
 from unischedule.models import University
 from unischedule.scheduler import ScheduleResult
 
@@ -17,6 +19,8 @@ def schedule_records(
     sections = {section.id: section for section in university.sections}
     schools = {school.id: school for school in university.schools}
     cohorts = {cohort.id: cohort for cohort in university.cohorts}
+    student_groups = {group.id: group for group in university.student_groups}
+    cohort_groups = groups_by_cohort(university.student_groups)
     staff = {member.id: member for member in university.staff}
     rooms = {room.id: room for room in university.rooms}
     slots = {slot.id: slot for slot in university.slots}
@@ -32,6 +36,10 @@ def schedule_records(
         cohort_names = ", ".join(
             cohorts[cohort_id].name for cohort_id in section.cohort_ids
         )
+        group_names = ", ".join(
+            student_groups[group_id].name for group_id in section.student_group_ids
+        )
+        learner_ids = learner_resource_ids(section, cohort_groups)
         for slot_id in meeting.slot_ids:
             slot = slots[slot_id]
             records.append(
@@ -45,6 +53,9 @@ def schedule_records(
                     "program": section.program,
                     "cohorts": cohort_names,
                     "cohort_ids": section.cohort_ids,
+                    "student_groups": group_names or "Whole cohort",
+                    "student_group_ids": section.student_group_ids,
+                    "learner_resource_ids": learner_ids,
                     "instructors": instructor_names,
                     "instructor_ids": section.instructor_ids,
                     "day": slot.day,
@@ -76,7 +87,7 @@ def validate_schedule(university: University, result: ScheduleResult) -> list[st
     violations: list[str] = []
     room_usage: set[tuple[str, str]] = set()
     staff_usage: set[tuple[str, str]] = set()
-    cohort_usage: set[tuple[str, str]] = set()
+    sections_by_slot: dict[str, list[str]] = defaultdict(list)
     meeting_counts: Counter[str] = Counter()
     section_days: dict[str, set[str]] = defaultdict(set)
 
@@ -113,11 +124,14 @@ def validate_schedule(university: University, result: ScheduleResult) -> list[st
                         f"Staff member {instructor_id} is unavailable in {slot_id}."
                     )
 
-            for cohort_id in section.cohort_ids:
-                cohort_key = (cohort_id, slot_id)
-                if cohort_key in cohort_usage:
-                    violations.append(f"Cohort {cohort_id} has a clash in {slot_id}.")
-                cohort_usage.add(cohort_key)
+            for scheduled_section_id in sections_by_slot[slot_id]:
+                scheduled_section = sections[scheduled_section_id]
+                if students_conflict(section, scheduled_section):
+                    violations.append(
+                        f"Students in {section.id} and {scheduled_section.id} "
+                        f"have a clash in {slot_id}."
+                    )
+            sections_by_slot[slot_id].append(section.id)
 
     for section in university.sections:
         if meeting_counts[section.id] != section.meetings_per_week:

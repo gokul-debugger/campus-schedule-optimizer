@@ -60,7 +60,7 @@ def test_schedule_quality_reports_each_soft_objective() -> None:
     assert quality.room_affinity_rate == 0.5
     assert quality.late_period_meetings == 1
     assert quality.max_staff_daily_periods == 2
-    assert quality.max_cohort_daily_periods == 2
+    assert quality.max_learner_daily_periods == 2
     assert quality.staff_daily_loads[0].periods == 2
 
 

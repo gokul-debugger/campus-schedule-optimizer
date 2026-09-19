@@ -81,6 +81,7 @@ def test_calendar_escapes_content_and_folds_long_lines() -> None:
 
     assert "X-WR-CALNAME:Science\\, Engineering\\; and Computing" in calendar
     assert "\\nCohorts:" in calendar
+    assert "\\nStudent groups:" in calendar
     assert all(len(line.encode("utf-8")) <= 75 for line in calendar.split("\r\n"))
 
 

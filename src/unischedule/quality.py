@@ -6,13 +6,14 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from unischedule.attendance import groups_by_cohort, learner_resource_ids
 from unischedule.models import CourseSection, ScheduledMeeting, University
 
 PREFERENCE_MISS_WEIGHT = 3
 FOREIGN_ROOM_WEIGHT = 2
 LATE_PERIOD_WEIGHT = 1
 STAFF_DAILY_PAIR_WEIGHT = 1
-COHORT_DAILY_PAIR_WEIGHT = 1
+LEARNER_DAILY_PAIR_WEIGHT = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,9 +36,9 @@ class ScheduleQuality:
     late_period_meetings: int
     total_meetings: int
     max_staff_daily_periods: int
-    max_cohort_daily_periods: int
+    max_learner_daily_periods: int
     staff_daily_loads: tuple[DailyLoad, ...]
-    cohort_daily_loads: tuple[DailyLoad, ...]
+    learner_daily_loads: tuple[DailyLoad, ...]
 
     @property
     def preference_satisfaction_rate(self) -> float | None:
@@ -89,7 +90,8 @@ def evaluate_schedule_quality(
     slot_periods = {slot.id: slot.period for slot in university.slots}
     latest_period = max(slot_periods.values(), default=0)
     staff_loads: dict[tuple[str, str], int] = defaultdict(int)
-    cohort_loads: dict[tuple[str, str], int] = defaultdict(int)
+    learner_loads: dict[tuple[str, str], int] = defaultdict(int)
+    cohort_groups = groups_by_cohort(university.student_groups)
     preferred_meetings = 0
     preference_eligible_meetings = 0
     home_or_shared_room_meetings = 0
@@ -120,25 +122,25 @@ def evaluate_schedule_quality(
         )
         for instructor_id in section.instructor_ids:
             staff_loads[(instructor_id, day)] += duration
-        for cohort_id in section.cohort_ids:
-            cohort_loads[(cohort_id, day)] += duration
+        for learner_id in learner_resource_ids(section, cohort_groups):
+            learner_loads[(learner_id, day)] += duration
 
     staff_concentration = sum(pair_cost(load) for load in staff_loads.values())
-    cohort_concentration = sum(pair_cost(load) for load in cohort_loads.values())
+    learner_concentration = sum(pair_cost(load) for load in learner_loads.values())
     staff_daily_loads = tuple(
         DailyLoad(resource_id, day, periods)
         for (resource_id, day), periods in sorted(staff_loads.items())
     )
-    cohort_daily_loads = tuple(
+    learner_daily_loads = tuple(
         DailyLoad(resource_id, day, periods)
-        for (resource_id, day), periods in sorted(cohort_loads.items())
+        for (resource_id, day), periods in sorted(learner_loads.items())
     )
 
     return ScheduleQuality(
         soft_penalty=(
             static_penalty
             + STAFF_DAILY_PAIR_WEIGHT * staff_concentration
-            + COHORT_DAILY_PAIR_WEIGHT * cohort_concentration
+            + LEARNER_DAILY_PAIR_WEIGHT * learner_concentration
         ),
         preferred_meetings=preferred_meetings,
         preference_eligible_meetings=preference_eligible_meetings,
@@ -146,7 +148,7 @@ def evaluate_schedule_quality(
         late_period_meetings=late_period_meetings,
         total_meetings=len(meeting_list),
         max_staff_daily_periods=max(staff_loads.values(), default=0),
-        max_cohort_daily_periods=max(cohort_loads.values(), default=0),
+        max_learner_daily_periods=max(learner_loads.values(), default=0),
         staff_daily_loads=staff_daily_loads,
-        cohort_daily_loads=cohort_daily_loads,
+        learner_daily_loads=learner_daily_loads,
     )

@@ -9,10 +9,18 @@ from unischedule.models import CourseSection
 
 def sections_conflict(left: CourseSection, right: CourseSection) -> bool:
     """Return whether two sections cannot meet at the same time."""
-    return bool(
-        set(left.instructor_ids) & set(right.instructor_ids)
-        or set(left.cohort_ids) & set(right.cohort_ids)
+    return bool(set(left.instructor_ids) & set(right.instructor_ids)) or (
+        students_conflict(left, right)
     )
+
+
+def students_conflict(left: CourseSection, right: CourseSection) -> bool:
+    """Return whether the same learners attend both course sections."""
+    if not set(left.cohort_ids) & set(right.cohort_ids):
+        return False
+    if not left.student_group_ids or not right.student_group_ids:
+        return True
+    return bool(set(left.student_group_ids) & set(right.student_group_ids))
 
 
 def build_conflict_graph(
@@ -39,4 +47,3 @@ def graph_density(graph: dict[str, frozenset[str]]) -> float:
         return 0.0
     edge_count = sum(len(neighbors) for neighbors in graph.values()) / 2
     return edge_count / (node_count * (node_count - 1) / 2)
-

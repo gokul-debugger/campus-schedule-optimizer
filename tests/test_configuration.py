@@ -25,7 +25,8 @@ def test_editor_round_trip_preserves_valid_configuration(demo_data: dict) -> Non
     original_university = university_from_dict(demo_data)
 
     assert rebuilt_university == original_university
-    assert len(rebuilt_university.sections) == 14
+    assert len(rebuilt_university.student_groups) == 4
+    assert len(rebuilt_university.sections) == 15
 
 
 def test_editor_accepts_comma_separated_list_values(demo_data: dict) -> None:
